@@ -1,4 +1,28 @@
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
-COMMENT = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+COMMENT    = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+
+
+kw_int   = @{ "int" ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_char  = @{ "char" ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_bool  = @{ "bool" ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_void  = @{ "void" ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_true  = @{ "true" ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_false = @{ "false" ~ !(ASCII_ALPHANUMERIC | "_") }
+
+keyword = _{ kw_int | kw_char | kw_bool | kw_void | kw_true | kw_false }
+
+
+integer_lit = @{ ASCII_DIGIT+ }
+char_lit    = @{ "'" ~ ("\\" ~ ANY | !("'") ~ ANY) ~ "'" }
+bool_lit    = { kw_true | kw_false }
+
+
+ident = @{ !keyword ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
+
+base_type  = { kw_int | kw_char | kw_bool | kw_void }
+array_type = { base_type ~ "[" ~ integer_lit? ~ "]" }
+type_spec  = { array_type | base_type }
+
 
 program = { SOI ~ EOI }
