@@ -37,11 +37,6 @@ for_cond   = { expr? ~ ";" }
 for_update = { expr? }
 
 
-stmt = {
-    if_stmt | while_stmt | do_while_stmt | return_stmt | for_stmt | block_stmt | expr_stmt | empty_stmt
-}
-
-
 integer_lit = @{ ASCII_DIGIT+ }
 char_lit    = @{ "'" ~ ("\\" ~ ANY | !("'") ~ ANY) ~ "'" }
 bool_lit    = { kw_true | kw_false }
@@ -76,7 +71,30 @@ compare_expr   = { additive ~ ((op_eq | op_ne | op_le | op_ge | op_lt | op_gt) ~
 additive       = { multiplicative ~ ((op_add | op_sub) ~ multiplicative)* }
 multiplicative = { unary ~ ((op_mul | op_div | op_mod) ~ unary)* }
 unary          = { op_not* ~ primary }
-primary        = { integer_lit | char_lit | bool_lit | "(" ~ expr ~ ")" | ident }
 
 
-program = { SOI ~ EOI }
+var_init      = { ident ~ ("=" ~ expr)? }
+var_decl      = { type_spec ~ var_init ~ ("," ~ var_init)* }
+var_decl_stmt = { var_decl ~ ";" }
+
+
+param      = { type_spec ~ ident }
+param_list = { param ~ ("," ~ param)* }
+arg_list = { expr ~ ("," ~ expr)* }
+func_decl = { type_spec ~ ident ~ "(" ~ param_list? ~ ")" ~ block_stmt }
+call_expr = { ident ~ "(" ~ arg_list? ~ ")" }
+
+
+stmt = {
+    if_stmt | while_stmt | do_while_stmt | return_stmt | for_stmt |
+    block_stmt | expr_stmt | empty_stmt | var_decl_stmt
+}
+
+
+primary = {
+    integer_lit | char_lit | bool_lit | call_expr | "(" ~ expr ~ ")" | ident
+}
+
+
+top_level = { func_decl | var_decl_stmt }
+program   = { SOI ~ top_level* ~ EOI }

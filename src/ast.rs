@@ -1,5 +1,33 @@
-#[derive(Debug)]
-pub struct Program;
+#[derive(Debug, Clone)]
+pub struct VarDecl {
+    pub ty: Type,
+    pub vars: Vec<(String, Option<Expr>)>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Param {
+    pub ty: Type,
+    pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct FuncDecl {
+    pub return_ty: Type,
+    pub name: String,
+    pub params: Vec<Param>,
+    pub body: Vec<Stmt>,
+}
+
+#[derive(Debug, Clone)]
+pub enum TopLevel {
+    Func(FuncDecl),
+    Var(VarDecl),
+}
+
+#[derive(Debug, Clone)]
+pub struct Program {
+    pub items: Vec<TopLevel>,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
@@ -24,6 +52,10 @@ pub enum Expr {
     Unary {
         op: UnaryOp,
         operand: Box<Expr>,
+    },
+    Call {
+        name: String,
+        args: Vec<Expr>,
     },
 }
 
@@ -79,4 +111,5 @@ pub enum Stmt {
     Return(Option<Expr>),
     Expr(Expr),
     Empty,
+    VarDecl(VarDecl),
 }

@@ -1,4 +1,6 @@
-use crate::ast::{BinaryOp, Expr, ForInit, Program, Stmt, Type, UnaryOp};
+use crate::ast::{
+    BinaryOp, Expr, ForInit, FuncDecl, Param, Program, Stmt, TopLevel, Type, UnaryOp, VarDecl,
+};
 use pest::Parser;
 use pest::iterators::Pair;
 
@@ -6,9 +8,88 @@ use pest::iterators::Pair;
 #[grammar = "grammar.pest"]
 pub struct CParser;
 
+fn parse_func_decl(pair: Pair<Rule>) -> FuncDecl {
+    let mut inner = pair.into_inner();
+
+    let return_ty = parse_type(inner.next().unwrap());
+    let name = inner.next().unwrap().as_str().to_owned();
+    let mut params = Vec::new();
+    let mut body = Vec::new();
+
+    for part in inner {
+        match part.as_rule() {
+            Rule::param_list => {
+                params = part
+                    .into_inner()
+                    .filter(|p| p.as_rule() == Rule::param)
+                    .map(|p| {
+                        let mut pi = p.into_inner();
+                        let ty = parse_type(pi.next().unwrap());
+                        let name = pi.next().unwrap().as_str().to_owned();
+
+                        Param { ty, name }
+                    })
+                    .collect();
+            }
+            Rule::block_stmt => body = parse_block(part),
+            _ => {}
+        }
+    }
+
+    FuncDecl {
+        return_ty: return_ty,
+        name: name,
+        params: params,
+        body: body,
+    }
+}
+
+fn parse_var_decl(pair: Pair<Rule>) -> VarDecl {
+    let mut inner = pair.into_inner();
+    let ty = parse_type(inner.next().unwrap());
+    let vars = inner
+        .filter(|p| p.as_rule() == Rule::var_init)
+        .map(|p| {
+            let mut vi = p.into_inner();
+            let name = vi.next().unwrap().as_str().to_owned();
+            let init = vi.next().map(parse_expr);
+
+            (name, init)
+        })
+        .collect();
+
+    VarDecl { ty: ty, vars: vars }
+}
+
+fn parse_var_decl_stmt(pair: Pair<Rule>) -> VarDecl {
+    parse_var_decl(pair.into_inner().next().unwrap())
+}
+
+fn parse_top_level(pair: Pair<Rule>) -> TopLevel {
+    let inner = pair.into_inner().next().unwrap();
+
+    match inner.as_rule() {
+        Rule::func_decl => TopLevel::Func(parse_func_decl(inner)),
+        Rule::var_decl_stmt => TopLevel::Var(parse_var_decl_stmt(inner)),
+        r => unreachable!("top_level: {r:?}"),
+    }
+}
+
 pub fn parse_program(src: &str) -> Result<Program, pest::error::Error<Rule>> {
-    let _pairs = CParser::parse(Rule::program, src)?;
-    Ok(Program)
+    let mut items = Vec::new();
+    let pairs = CParser::parse(Rule::program, src)?;
+
+    for pair in pairs {
+        for top in pair.into_inner() {
+            match top.as_rule() {
+                Rule::top_level => items.push(parse_top_level(top)),
+                Rule::EOI => {}
+                _ => {}
+            }
+        }
+    }
+
+    Ok(Program { items: items })
 }
 
 fn parse_base_type(pair: Pair<Rule>) -> Type {
@@ -95,6 +176,19 @@ fn parse_primary(pair: Pair<Rule>) -> Expr {
         Rule::bool_lit => {
             let kw = inner.into_inner().next().unwrap();
             Expr::BoolLit(kw.as_rule() == Rule::kw_true)
+        }
+        Rule::call_expr => {
+            let mut ci = inner.into_inner();
+            let name = ci.next().unwrap().as_str().to_owned();
+            let args = ci
+                .next()
+                .map(|al| al.into_inner().map(parse_expr).collect())
+                .unwrap_or_default();
+
+            Expr::Call {
+                name: name,
+                args: args,
+            }
         }
         Rule::expr => parse_expr(inner),
         Rule::ident => Expr::Ident(inner.as_str().to_owned()),
@@ -199,13 +293,13 @@ fn parse_for(pair: Pair<Rule>) -> Stmt {
             None => ForInit::Empty,
         }
     };
-    let cund = inner.next().unwrap().into_inner().next().map(parse_expr);
+    let cond = inner.next().unwrap().into_inner().next().map(parse_expr);
     let update = inner.next().unwrap().into_inner().next().map(parse_expr);
     let body = Box::new(parse_stmt(inner.next().unwrap()));
 
     Stmt::For {
         init: init,
-        cond: cund,
+        cond: cond,
         update: update,
         body: body,
     }
@@ -228,6 +322,7 @@ pub fn parse_stmt(pair: Pair<Rule>) -> Stmt {
 
             Stmt::Return(expr)
         }
+        Rule::var_decl_stmt => Stmt::VarDecl(parse_var_decl_stmt(inner)),
         Rule::expr_stmt => Stmt::Expr(parse_expr(inner.into_inner().next().unwrap())),
         Rule::empty_stmt => Stmt::Empty,
         r => unreachable!("stmt: {r:?}"),
