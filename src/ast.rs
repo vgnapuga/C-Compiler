@@ -47,3 +47,36 @@ pub enum BinaryOp {
 pub enum UnaryOp {
     Not,
 }
+
+#[derive(Debug, Clone)]
+pub enum ForInit {
+    Expr(Expr),
+    Empty,
+}
+
+#[derive(Debug, Clone)]
+pub enum Stmt {
+    Block(Vec<Stmt>),
+    If {
+        cond: Expr,
+        then_br: Box<Stmt>,
+        else_br: Option<Box<Stmt>>,
+    },
+    While {
+        cond: Expr,
+        body: Box<Stmt>,
+    },
+    DoWhile {
+        body: Box<Stmt>,
+        cond: Expr,
+    },
+    For {
+        init: ForInit,
+        cond: Option<Expr>,
+        update: Option<Expr>,
+        body: Box<Stmt>,
+    },
+    Return(Option<Expr>),
+    Expr(Expr),
+    Empty,
+}

@@ -1,4 +1,4 @@
-use crate::ast::{BinaryOp, Expr, Program, Type, UnaryOp};
+use crate::ast::{BinaryOp, Expr, ForInit, Program, Stmt, Type, UnaryOp};
 use pest::Parser;
 use pest::iterators::Pair;
 
@@ -143,5 +143,93 @@ pub fn parse_expr(pair: Pair<Rule>) -> Expr {
         Rule::unary => parse_unary(pair),
         Rule::primary => parse_primary(pair),
         r => unreachable!("parse_expr: {r:?}"),
+    }
+}
+
+pub fn parse_block(pair: Pair<Rule>) -> Vec<Stmt> {
+    pair.into_inner()
+        .filter(|p| p.as_rule() == Rule::stmt)
+        .map(parse_stmt)
+        .collect()
+}
+
+fn parse_if(pair: Pair<Rule>) -> Stmt {
+    let mut inner = pair.into_inner();
+    let cond = parse_expr(inner.next().unwrap());
+    let then_br = Box::new(parse_stmt(inner.next().unwrap()));
+    let else_br = inner.next().map(|s| Box::new(parse_stmt(s)));
+
+    Stmt::If {
+        cond: cond,
+        then_br: then_br,
+        else_br: else_br,
+    }
+}
+
+fn parse_while(pair: Pair<Rule>) -> Stmt {
+    let mut inner = pair.into_inner();
+    let cond = parse_expr(inner.next().unwrap());
+    let body = Box::new(parse_stmt(inner.next().unwrap()));
+
+    Stmt::While {
+        cond: cond,
+        body: body,
+    }
+}
+
+fn parse_do_while(pair: Pair<Rule>) -> Stmt {
+    let mut inner = pair.into_inner();
+    let body = Box::new(parse_stmt(inner.next().unwrap()));
+    let cond = parse_expr(inner.next().unwrap());
+
+    Stmt::DoWhile {
+        body: body,
+        cond: cond,
+    }
+}
+
+fn parse_for(pair: Pair<Rule>) -> Stmt {
+    let mut inner = pair.into_inner();
+
+    let init = {
+        let p = inner.next().unwrap();
+
+        match p.into_inner().next() {
+            Some(e) => ForInit::Expr(parse_expr(e)),
+            None => ForInit::Empty,
+        }
+    };
+    let cund = inner.next().unwrap().into_inner().next().map(parse_expr);
+    let update = inner.next().unwrap().into_inner().next().map(parse_expr);
+    let body = Box::new(parse_stmt(inner.next().unwrap()));
+
+    Stmt::For {
+        init: init,
+        cond: cund,
+        update: update,
+        body: body,
+    }
+}
+
+pub fn parse_stmt(pair: Pair<Rule>) -> Stmt {
+    let inner = pair.into_inner().next().unwrap();
+
+    match inner.as_rule() {
+        Rule::block_stmt => Stmt::Block(parse_block(inner)),
+        Rule::if_stmt => parse_if(inner),
+        Rule::while_stmt => parse_while(inner),
+        Rule::do_while_stmt => parse_do_while(inner),
+        Rule::for_stmt => parse_for(inner),
+        Rule::return_stmt => {
+            let expr = inner
+                .into_inner()
+                .find(|p| p.as_rule() == Rule::expr)
+                .map(parse_expr);
+
+            Stmt::Return(expr)
+        }
+        Rule::expr_stmt => Stmt::Expr(parse_expr(inner.into_inner().next().unwrap())),
+        Rule::empty_stmt => Stmt::Empty,
+        r => unreachable!("stmt: {r:?}"),
     }
 }

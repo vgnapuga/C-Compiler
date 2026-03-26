@@ -9,7 +9,37 @@ kw_void  = @{ "void" ~ !(ASCII_ALPHANUMERIC | "_") }
 kw_true  = @{ "true" ~ !(ASCII_ALPHANUMERIC | "_") }
 kw_false = @{ "false" ~ !(ASCII_ALPHANUMERIC | "_") }
 
-keyword = _{ kw_int | kw_char | kw_bool | kw_void | kw_true | kw_false }
+kw_if     = @{ "if" ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_else   = @{ "else" ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_while  = @{ "while" ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_do     = @{ "do" ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_for    = @{ "for" ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_return = @{ "return" ~ !(ASCII_ALPHANUMERIC | "_") }
+
+keyword = _{
+    kw_int | kw_char | kw_bool | kw_void | kw_true | kw_false  |
+    kw_if | kw_else | kw_while | kw_do | kw_for | kw_return
+}
+
+
+block_stmt = { "{" ~ stmt* ~ "}" }
+expr_stmt  = { expr ~ ";" }
+empty_stmt = { ";" }
+
+if_stmt       = { kw_if ~ "(" ~ expr ~ ")" ~ stmt ~ (kw_else ~ stmt)? }
+while_stmt    = { kw_while ~ "(" ~ expr ~ ")" ~ stmt }
+do_while_stmt = { kw_do ~ stmt ~ kw_while ~ "(" ~ expr ~ ")" ~ ";" }
+return_stmt   = { kw_return ~ expr? ~ ";" }
+
+for_stmt   = { kw_for ~ "(" ~ for_init ~ for_cond ~ for_update ~ ")" ~ stmt }
+for_init   = { expr? ~ ";" }
+for_cond   = { expr? ~ ";" }
+for_update = { expr? }
+
+
+stmt = {
+    if_stmt | while_stmt | do_while_stmt | return_stmt | for_stmt | block_stmt | expr_stmt | empty_stmt
+}
 
 
 integer_lit = @{ ASCII_DIGIT+ }
@@ -43,7 +73,7 @@ op_not    = @{ "!" ~ !"=" }
 expr           = { assign_expr }
 assign_expr    = { compare_expr ~ (op_assign ~ assign_expr)? }
 compare_expr   = { additive ~ ((op_eq | op_ne | op_le | op_ge | op_lt | op_gt) ~ additive)* }
-additive      = { multiplicative ~ ((op_add | op_sub) ~ multiplicative)* }
+additive       = { multiplicative ~ ((op_add | op_sub) ~ multiplicative)* }
 multiplicative = { unary ~ ((op_mul | op_div | op_mod) ~ unary)* }
 unary          = { op_not* ~ primary }
 primary        = { integer_lit | char_lit | bool_lit | "(" ~ expr ~ ")" | ident }
