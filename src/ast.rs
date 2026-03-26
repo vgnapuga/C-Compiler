@@ -14,6 +14,36 @@ pub enum Type {
 pub enum Expr {
     IntLit(i64),
     CharLit(char),
-    BoolLet(bool),
+    BoolLit(bool),
     Ident(String),
+    Binary {
+        op: BinaryOp,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    },
+    Unary {
+        op: UnaryOp,
+        operand: Box<Expr>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub enum BinaryOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Eq,
+    Ne,
+    Lt,
+    Gt,
+    Le,
+    Ge,
+    Assign,
+}
+
+#[derive(Debug, Clone)]
+pub enum UnaryOp {
+    Not,
 }

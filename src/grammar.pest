@@ -25,4 +25,28 @@ array_type = { base_type ~ "[" ~ integer_lit? ~ "]" }
 type_spec  = { array_type | base_type }
 
 
+op_assign = @{ "=" ~ !"=" }
+op_eq     = @{ "==" }
+op_ne     = @{ "!=" }
+op_le     = @{ "<=" }
+op_ge     = @{ ">=" }
+op_lt     = @{ "<" ~ !"=" }
+op_gt     = @{ ">" ~ !"=" }
+op_add    = @{ "+" }
+op_sub    = @{ "-" }
+op_mul    = @{ "*" }
+op_div    = @{ "/" }
+op_mod    = @{ "%" }
+op_not    = @{ "!" ~ !"=" }
+
+
+expr           = { assign_expr }
+assign_expr    = { compare_expr ~ (op_assign ~ assign_expr)? }
+compare_expr   = { additive ~ ((op_eq | op_ne | op_le | op_ge | op_lt | op_gt) ~ additive)* }
+additive      = { multiplicative ~ ((op_add | op_sub) ~ multiplicative)* }
+multiplicative = { unary ~ ((op_mul | op_div | op_mod) ~ unary)* }
+unary          = { op_not* ~ primary }
+primary        = { integer_lit | char_lit | bool_lit | "(" ~ expr ~ ")" | ident }
+
+
 program = { SOI ~ EOI }
