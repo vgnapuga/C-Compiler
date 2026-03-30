@@ -249,6 +249,8 @@ pub fn parse_block(pair: Pair<Rule>) -> Vec<Stmt> {
 
 fn parse_if(pair: Pair<Rule>) -> Stmt {
     let mut inner = pair.into_inner();
+    inner.next();
+
     let cond = parse_expr(inner.next().unwrap());
     let then_br = Box::new(parse_stmt(inner.next().unwrap()));
     let else_br = inner.next().map(|s| Box::new(parse_stmt(s)));
@@ -262,6 +264,8 @@ fn parse_if(pair: Pair<Rule>) -> Stmt {
 
 fn parse_while(pair: Pair<Rule>) -> Stmt {
     let mut inner = pair.into_inner();
+    inner.next();
+
     let cond = parse_expr(inner.next().unwrap());
     let body = Box::new(parse_stmt(inner.next().unwrap()));
 
@@ -273,7 +277,11 @@ fn parse_while(pair: Pair<Rule>) -> Stmt {
 
 fn parse_do_while(pair: Pair<Rule>) -> Stmt {
     let mut inner = pair.into_inner();
+    inner.next();
+
     let body = Box::new(parse_stmt(inner.next().unwrap()));
+    inner.next();
+
     let cond = parse_expr(inner.next().unwrap());
 
     Stmt::DoWhile {
@@ -284,6 +292,7 @@ fn parse_do_while(pair: Pair<Rule>) -> Stmt {
 
 fn parse_for(pair: Pair<Rule>) -> Stmt {
     let mut inner = pair.into_inner();
+    inner.next();
 
     let init = {
         let p = inner.next().unwrap();

@@ -18,7 +18,10 @@ fn main() {
     };
 
     match parser::parse_program(&source) {
-        Ok(_) => println!("--- OK ---"),
+        Ok(program) => {
+            program.print_tree();
+            println!("\n <== OK ==>")
+        }
         Err(e) => {
             eprintln!("Синтаксическая ошибка:\n{e}");
             process::exit(1)
